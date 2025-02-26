@@ -1,0 +1,502 @@
+[
+  {
+    "id": 1,
+    "question": "统计店铺ID为3971603627，在2025年11月27日至2025年12月26日期间的去重买家数、SKU支付总金额和去重订单数。",
+    "sql": "select count(distinct user_id) as user_id_cnt\n        ,sum(order_sku_price) as order_sku_price_sum\n        ,count(distinct order_id) as order_cnt\nfrom ecom.order_sku_pay\nwhere statis_day between 20251127 and 20251226\nand shop_id = 100030\nlimit 1000"
+  },
+  {
+    "id": 2,
+    "question": "2025年11月19日，在使用了活动类型A支付，且历史用券订单数大于1的用户中，按他们使用的券是否来源于‘场景I’场景，分别统计用户数是多少？",
+    "sql": "select \n    20251119 as ds\n    ,is_yaoyiyao\n    ,count(distinct user_id) as error_user_cnt\nfrom (\n    select \n        t1.user_id\n        ,max(is_yaoyiyao) as is_yaoyiyao\n        ,count(distinct t1.user_id) as error_user_cnt\n    from \n    (\n        select \n            k1.user_id\n            , k1.coupon_id\n            , k1.order_id\n            , if(k2.coupon_id is not null, 1, 0) as is_yaoyiyao\n        from \n        (\n        --每天的用券支付\n            select \n                user_id\n                , coupon_id\n                , order_id\n                , pay_time\n            from ecom.platform_coupon_use \n            where ds = '20251119'\n                and substr(pay_time, 1, 8) = 20251119\n                and scene = '活动类型A'\n                and is_get = 1 \n        ) k1 \n        left join\n        (\n            select \n                user_id\n                , coupon_id\n            from ecom.platform_coupon_claim \n            where ds = '20251119'\n            and scene = 4\n            and request_scene = '100003' --场景I\n        ) k2 \n        on k1.coupon_id = k2.coupon_id\n    ) t1 \n    join \n    (\n        -- 历史用券单数\n        select \n            user_id\n            , count(distinct order_id) as order_cnt\n            , count(distinct coupon_id) as coupon_cnt\n        from \n        (\n            -- 用券的人\n            select \n                user_id\n                , coupon_id\n                , order_id\n            from ecom.platform_coupon_use t1 \n            where ds = 20251119\n                and substr(pay_time, 1, 8) >= 20250801\n                and scene = '活动类型A'\n                and is_get = 1 \n        )  \n        group by user_id\n        having order_cnt > 1\n    ) t2 on t1.user_id = t2.user_id\n    group by t1.user_id\n)\ngroup by is_yaoyiyao"
+  },
+  {
+    "id": 3,
+    "question": "在2026年1月4日的数据中，存在哪些不同的预售标签和预售类型的组合？",
+    "sql": "select presale_tag\n    ,presale_type\nfrom ecom.product_attribute\nwhere ds = 20260104\ngroup by presale_tag,presale_type"
+  },
+  {
+    "id": 4,
+    "question": "2025年11月23日，发券场景为活动类型B的平台券使用记录有哪些？请返回前100条。",
+    "sql": "select * from ecom.platform_coupon_use where ds = 20251123 and  scene = '活动类型B' limit 100"
+  },
+  {
+    "id": 5,
+    "question": "2025年11月26日，活动类型A首次领取记录中，每个发券请求场景（request_scene）的独立用户数是多少？",
+    "sql": "SELECT\n    request_scene,\n    COUNT(DISTINCT user_id) AS distinct_user_count\nFROM ecom.platform_coupon_claim\nWHERE ds = '20251126'\n    AND get_ds = '20251126'\n    AND scene = 4 -- 活动类型A\n    AND is_get = 1 \n    -- AND sub_scene = 11 -- 一单券\nGROUP BY request_scene"
+  },
+  {
+    "id": 6,
+    "question": "查询店铺shop_id为3840888123，在2025年12月28日数据分区下的注册编号、开店完成时间、店铺业务分类、店铺类型以及店铺状态这些信息。",
+    "sql": "select shop_id  \n                ,max(registration_no) as registration_no\n                ,min(open_store_info_finish_time) as open_ds\n                ,max(acct_sub_type) as acct_sub_type\n                ,max(shop_type) as shop_type\n                ,max(base_info_ec_acct_status) as base_info_ec_acct_status\n        from ecom.shop_base_info  \n        where ds =  '20251228'\n        and shop_id = 100017\n        group by shop_id"
+  },
+  {
+    "id": 7,
+    "question": "查询2025年11月26日订单号为UID-3732551160159159552的订单详情。",
+    "sql": "select *\r\nfrom ecom.order_sku_pay\r\nwhere statis_day='20251126'\r\n    and order_id = 'UID-7260916397879482724'"
+  },
+  {
+    "id": 8,
+    "question": "查询商品ID为10000334593530的商品在2025年12月16日的头图URL列表和商详图URL列表（将URL间的逗号替换为分号）。",
+    "sql": "select\n    product_id\n    , replace(head_img_info, ',', ';') as head_img_url\n    , replace(detail_img_info, ',', ';') as detail_img_url\nfrom\n    ecom.product_attribute\nwhere\n    ds = 20251216\n    and product_id = '60180256862497'"
+  },
+  {
+    "id": 9,
+    "question": "2025年12月18日，商品ID为10000240205226的商品属于哪些店铺？",
+    "sql": "select shop_id,product_id\nfrom ecom.product_attribute\nwhere ds = '20251218'\nand product_id = '12298699103416'\ngroup by shop_id,product_id"
+  },
+  {
+    "id": 10,
+    "question": "查询2025年11月25日平台券使用记录中，商品列表不为空的数据样本（前100条），并提取每条记录中第一个商品的标准产品单位（SPU）ID。",
+    "sql": "select *\n    ,get_json_object(split(product_list, '},')[0], '$.spu_id')\nfrom ecom.platform_coupon_use \nwhere ds='20251125'\n    and length(product_list)>0\nlimit 100"
+  },
+  {
+    "id": 11,
+    "question": "查询2025年12月29日订单来源类型为9、订单价格大于0、支付时间在2025年12月29日及之前的订单，按每个买家用户的首次支付时间顺序，列出前10条订单的订单号、店铺id和买家用户id。",
+    "sql": "select  \n            order_id\n            ,shop_id\n            ,user_id\n            ,row_number() over(partition by user_id order by pay_timestamp asc) as rn\n        from ecom.order_pay_detail\n        where ds = 20251229\n            and order_src_type = 9\n            and order_price > 0\n            and pay_timestamp > 0\n            and from_unixtime(pay_timestamp, 'yyyyMMdd')<='20251229'\n            limit 10"
+  },
+  {
+    "id": 12,
+    "question": "查询2025年12月2日所有店铺的基础信息（如店铺ID、店铺原始ID、视频号uin、商户号）以及其先付后用功能的详细状态（包括状态、开通时间、关闭时间、开通失败原因、请求开通时间、微信支付侧开通状态、微信支付侧拒绝原因、微信支付侧首次申请开通时间）。",
+    "sql": "select ds\r\n    ,shop_id\r\n    ,user_name\r\n    ,anchor_id\r\n    ,sub_mch_id\r\n    ,pay_after_use_info_status\r\n    ,pay_after_use_info_open_time\r\n    ,pay_after_use_info_close_time\r\n    ,pay_after_use_info_reason\r\n    ,pay_after_use_info_do_open_time\r\n    ,pay_after_use_info_pay_score_state\r\n    ,pay_after_use_info_pay_reject_reason\r\n    ,pay_after_use_info_pay_create_time\r\nfrom ecom.shop_base_info\r\nwhere ds='20251202'"
+  },
+  {
+    "id": 13,
+    "question": "查询2025年12月08日数据日期下，首次创建时间（草稿）为‘类目A’的商品的所有信息。",
+    "sql": "SELECT *\nFROM ecom.product_attribute\nWHERE ds = '20251208' AND first_create_time = '类目A'"
+  },
+  {
+    "id": 14,
+    "question": "2025年11月30日，有多少个店铺有在架商品？",
+    "sql": "select count(distinct shop_id)\nfrom ecom.product_attribute\nwhere ds = 20251130 and product_status_ori = 5"
+  },
+  {
+    "id": 15,
+    "question": "在2026年1月3日，店铺ID为 100026、100014 的这些店铺，它们的店铺ID和店铺名称分别是什么？",
+    "sql": "select shop_id,shop_name\n    from ecom.shop_summary\n    where ds =20260103\n    and shop_id in (100026, 100029, 100014)"
+  },
+  {
+    "id": 16,
+    "question": "2025年12月4日，订单ID为'UID-5458441754916753575'的平台券使用记录详情是什么？",
+    "sql": "select * \nfrom ecom.platform_coupon_use\nwhere ds='20251204' and order_id='UID-5458441754916753575'"
+  },
+  {
+    "id": 17,
+    "question": "查询平台券领取全量表中，在2025年12月1日至2025年12月14日期间领取、业务场景为活动类型A、且业务类型为COMPEN_SCENE_TYPE_AFTERSALE_BUSSI_BLAME_EXTRA_PAY的记录，按券ID分组，找出每个券的最小金额和最早的领取时间（精确到秒），并返回前10个结果。",
+    "sql": "select coupon_id     \n              ,min(amount)                   \n              ,from_unixtime(min(get_timestamp)/1000,'yyyyMMddHHmmss') as get_ds\n        from ecom.platform_coupon_claim\n        where ds = 20251217\n          and get_ds >= 20251201\n          and get_ds <= 20251214\n          and scene = 1\n          and traffic_type = 'COMPEN_SCENE_TYPE_AFTERSALE_BUSSI_BLAME_EXTRA_PAY'\n        group by coupon_id\n        limit 10"
+  },
+  {
+    "id": 18,
+    "question": "截至2025年12月26日，未完成开店的店铺数量是多少，并按商户类型分别统计？",
+    "sql": "select count(1),acct_type\nfrom ecom.shop_base_info\nwhere ds='20251226'\n and open_store_info_finish_time is null\ngroup by acct_type\nlimit 100"
+  },
+  {
+    "id": 19,
+    "question": "获取店铺ID为3958120239的店铺在2025年12月10日的所有店铺分析详情。",
+    "sql": "select *\n            from ecom.shop_summary \n            where ds = '20251210' \n            and shop_id= '100024'"
+  },
+  {
+    "id": 20,
+    "question": "对于2025年11月5日的数据，筛选出状态为“上架中”的商品类型C、商品类型A以及状态为“审核通过”的商品类型D商品，并排除店铺uin为0的记录。然后，按店铺和品类分组，对于每个分组，取最近上架的10个商品，列出这些商品的ID和它们的末次上架时间（格式为'商品ID:上架时间'，多个商品用分号分隔）。",
+    "sql": "SELECT\n              shop_id,\n              cate_leaf_id,\n              concat_ws(';', concat(product_id,':',listing_time)) as product_list\n            FROM\n              (\n                SELECT\n                  shop_id,\n                  cate_leaf_id,\n                  product_id,\n                  listing_time,\n                  row_number() over(partition by shop_id,cate_leaf_id order by listing_time desc) as rn\n                FROM ecom.product_attribute\n                where ds = '20251105'\n                and(\n                    (\n                      -- 商品类型包含：商品类型C 商品类型A 商品类型B 并且状态为 5-上架中\n                      product_type IN ('FinderShopLocalLife', 'FinderShopSPU')\n                      AND product_status IN (5)\n                    )\n                    OR (\n                      -- 商品类型为：商品类型D，并且状态为1，2 审核通过\n                      product_type IN ('FinderFlashSale')\n                      AND product_status IN (1, 2)\n                    )\n                  )\n                AND shop_id <> 0 -- 部分商品的shop_id为0，待排查\n              )\n            where rn <= 10\n            group by shop_id,cate_leaf_id,product_id,listing_time"
+  },
+  {
+    "id": 21,
+    "question": "统计在2025年12月25日，开店完成时间为空或无效的店铺数量是多少？",
+    "sql": "select count(1)\nfrom ecom.shop_base_info\nwhere ds='20251225'\n      and open_store_info_finish_time is null or open_store_info_finish_time<=0"
+  },
+  {
+    "id": 22,
+    "question": "查询2025年12月23日，店铺ID为3972541892、3951259416和3954990062的好店标相关数据。",
+    "sql": "select \n    *\nfrom ecom.shop_quality_mark \nwhere ds = 20251223\n    and shop_id in (100032,100018,100022)"
+  },
+  {
+    "id": 23,
+    "question": "查询2025年12月15日，所有在架商品的商品ID、商品名称、一级类目、二级类目、品类以及头图信息，最多返回900条记录。",
+    "sql": "select\n    product_id,\n    product_name,\n    cate_level1,\n    cate_level2,\n    cate_leaf,\n    head_img_info\n  from ecom.product_attribute\n  where ds='20251215'\n  and product_status_ori = 5 -- 在架商品\n  limit 900"
+  },
+  {
+    "id": 24,
+    "question": "2025年12月9日，平台优惠券ID为'844263840781308362'的所有使用记录是什么？请列出每条记录的订单ID、优惠金额、业务标识、礼物订单ID，并给出该优惠券的总使用次数。",
+    "sql": "select coupon_id\n          ,order_id\n          ,amount\n          ,shop_id\n          ,parent_order_id\n          ,sum(1) over (partition by coupon_id) as order_cnt   \n    from ecom.platform_coupon_use \n    where substr(ds,1,8) = '20251209'\n    and coupon_id = '844263840781308362'"
+  },
+  {
+    "id": 25,
+    "question": "2025年11月18日，按一级类目统计的商品总数以及在当天有更新的商品数量分别是多少？",
+    "sql": "select cate_level1\n        ,count(1)\n        ,count(if(from_unixtime(update_time, 'yyyyMMdd') = '20251118', 1, null))\nfrom ecom.product_attribute\nwhere ds = 20251118\ngroup by cate_level1\nlimit 1000"
+  },
+  {
+    "id": 26,
+    "question": "2025年12月25日，未完成开店流程（开店完成时间为空）、且商户类型为小店或组件4.0、且店铺状态处于正常经营或特定非注销状态范围内的店铺有多少个？",
+    "sql": "select count(1)\nfrom ecom.shop_base_info\nwhere ds='20251225'\n      and (open_store_info_finish_time is null  )\n      and acct_type in (101,102)\n     and  base_info_ec_acct_status >= 100 and base_info_ec_acct_status < 9000"
+  },
+  {
+    "id": 27,
+    "question": "2025年11月25日，用户ID为3192455146的用户，使用了哪些平台优惠券，并且这些优惠券关联的商品中包含商品ID为10000000089241的记录？",
+    "sql": "select * from ecom.platform_coupon_use \nlateral view explode(from_json(product_list, 'array<string>')) as product\nwhere ds = '20251125' and user_id = '100013' and get_json_object(product, '$.spu_id') = '61813387933332'"
+  },
+  {
+    "id": 28,
+    "question": "日期分区为20251123-7且场景备注为kf_favorite_store时，按日期分区、下单场景、场景备注统计的总订单金额是多少？",
+    "sql": "SELECT statis_day\n       ,scene\n       ,scene_note\n ,sum(order_price)\nFROM ecom.order_sku_pay\nWHERE statis_day = '20251123-7'\n-- and scene =1365 \nand scene_note = 'kf_favorite_store'\ngroup by statis_day,scene,scene_note"
+  },
+  {
+    "id": 29,
+    "question": "查询在2025年12月16日，店铺ID为3974672680的店铺shop_id、视频号uin以及其升级微信小店的状态（未升级、升级来的还是原生注册）是什么？",
+    "sql": "SELECT \n                    shop_id \n                    ,CAST(anchor_id AS BIGINT) AS anchor_id\n                    ,COALESCE(base_info_is_upgrade_wx_shop, 0) AS is_upgrade_wx_shop -- 升级微信小店：NULL/0-未升级，1-升级来的，2-原生注册注册\n                FROM \n                    ecom.shop_base_info\n                WHERE \n                    ds = 20251216\n                    and shop_id = '100035'"
+  },
+  {
+    "id": 30,
+    "question": "查询2025年11月30日所有店铺的shop_id。",
+    "sql": "select\n    shop_id\nfrom ecom.shop_base_info\nwhere   \n    ds = date_sub('100002'||'01',1)"
+  },
+  {
+    "id": 31,
+    "question": "查询2025年8月25日至2025年11月22日之间创建，且使用了优惠券ID为150000000019613354、150000000022213558或150000000024299042的普通订单的详细信息，包括用户ID、优惠券ID、订单ID、订单金额和优惠金额等字段。",
+    "sql": "select user_id,\n         coupon_id,\n         order_id,\n         order_price,\n         amount,\n         *\n  from ecom.platform_coupon_use where ds = 20251122\n  and order_id_type=1\n  and substr(create_time, 1, 8) between '20250825' and '20251122'\n  and coupon_id in ('846396947890650036',\n                    '842147896026081467',\n                    '271969018165524125')"
+  },
+  {
+    "id": 32,
+    "question": "2025年12月26日，店铺ID为3953345600的未注销且非个人店的店铺，其开店完成日期是什么？",
+    "sql": "SELECT shop_id, open_date\n            -- select distinct sub_type\n            FROM ecom.shop_summary\n            WHERE ds = '20251226'\n                AND ec_acct_status < 1000 -- 未注销\n                and shop_id = 100020\n                AND shop_type !=  9 -- 非个人店"
+  },
+  {
+    "id": 33,
+    "question": "截至2026年1月4日，有哪些品类包含‘行业A’的商品品类（请列出品类和对应的品类编号）？",
+    "sql": "select  \n    distinct cate_leaf, cate_leaf_id\nfrom ecom.product_attribute\nwhere ds = '20260104' and cate_leaf like '%行业A%'"
+  },
+  {
+    "id": 34,
+    "question": "统计2025年11月30日的商品数量是多少？",
+    "sql": "select  count(1)\nfrom\necom.product_attribute\nwhere ds = 20251130"
+  },
+  {
+    "id": 35,
+    "question": "查询2025年11月18日，店铺uin为3952950434下的所有商品属性信息。",
+    "sql": "select\n    *\nfrom\n    ecom.product_attribute\nwhere\n    ds = 20251118\n    and shop_id = '100019'"
+  },
+  {
+    "id": 36,
+    "question": "查询2025年12月9日，属于'类目B'一级类目下'子类目A'品类、价格不超过1000元、且商品状态（原始状态）为5、6、11或12的所有商品，并显示对应的商品ID、商品名称以及所属店铺的uin。",
+    "sql": "select shop_id, product_id, product_name\nfrom ecom.product_attribute\nwhere ds = 20251209 and cate_level1 = '类目B' and cate_leaf = '子类目A' and price <= 1000 and product_status_ori in (5, 6, 11, 12)"
+  },
+  {
+    "id": 37,
+    "question": "查询在日期为2024年1月31日、2024年2月29日、2024年3月31日、2024年4月30日、2024年5月31日、2024年6月30日、2024年7月31日、2024年8月31日、2024年9月30日、2024年10月31日、2024年11月30日、2024年12月31日、2025年1月31日、2025年2月28日、2025年3月31日、2025年4月30日、2025年5月31日、2025年6月30日、2025年7月31日、2025年8月31日、2025年9月30日、2025年10月31日、2025年11月30日这些天，各店铺最近30天的商品成交GMV（不包括运费）、成交用户数，以及按直播、短视频、商品分享、公众号文章插商品卡片、联盟、非联盟这些细分渠道划分的最近30天商品成交GMV分别是多少？",
+    "sql": "select \n  ds\n  ,pay_sku_gmv_30d--商品成交gmv\n  ,pay_user_cnt_30d--成交用户数\n  ,live_pay_sku_gmv_30d--直播成交gmv\n  ,shortvideo_pay_sku_gmv_30d--短视频成交gmv\n  ,product_share_pay_order_gmv_30d--商品分享成交gmv\n  ,mp_article_productcard_pay_order_gmv_30d--公众号文章插商品卡片-商品成交GMV\n  ,league_pay_sku_gmv_30d--联盟-商品成交gmv\n  ,nonleague_pay_sku_gmv_30d--非联盟-商品成交GMV\n  from ecom.shop_summary\n  where ds in (20240131, 20240229, 20240331)"
+  },
+  {
+    "id": 38,
+    "question": "在2025年12月4日，有哪些店铺的注册时间距今（即距离2025年12月4日）在80天到90天之间？",
+    "sql": "select\n    shop_id\nfrom ecom.shop_base_info\nwhere\n    ds = 20251204\n    and datediff('20251204',from_unixtime(base_info_register_time,'yyyyMMdd')) <= 90\n    and datediff('20251204',from_unixtime(base_info_register_time,'yyyyMMdd')) >= 80"
+  },
+  {
+    "id": 39,
+    "question": "查询2025年12月29日，店铺昵称中包含“行业B”字样的店铺的所有信息。",
+    "sql": "select * from \necom.shop_base_info\nwhere ds='20251229' and nick_name like '%行业B%'"
+  },
+  {
+    "id": 40,
+    "question": "2025年12月11日，一级类目为类目C、商品状态为状态A且商品类型不为wxaproduct的商品数量是多少？",
+    "sql": "SELECT \n    cate_level1,\n    COUNT(DISTINCT product_id) AS product_count\nFROM \n    ecom.product_attribute\nWHERE \n    ds = '20251211'\n    AND cate_level1 in ('类目C')\n    AND product_status_nm IN ('状态A')\n    AND product_type <> 'wxaproduct'\nGROUP BY \ncate_level1"
+  },
+  {
+    "id": 41,
+    "question": "2025年12月9日，发券场景为'场景A'的所有不同名称是什么？",
+    "sql": "SELECT DISTINCT name\nfrom ecom.platform_coupon_use\nwhere ds = 20251209 and scene = '场景A'"
+  },
+  {
+    "id": 42,
+    "question": "请查询以下21个商品ID（'39332480205971'、'17751337141135'、'47967832428650'、''、''、''、''、''、''、''、''、''、''、''、''、''、''、''、''、''、''）在2025年12月9日的店铺ID、R标类型（品牌自营或授权）、是否为热招品牌店铺（是/否），以及这些店铺在2025年12月9日的DSR评分（评价分）是多少？",
+    "sql": "select \na.product_id,\na.shop_id,\nbrand_show_type,\ncase when c.shop_id is not null then 1 else 0 end as is_high_level,\nevaluation_score\nfrom \n(select \nproduct_id,\nshop_id \nfrom \necom.product_attribute\nwhere ds = '20251209'\nand product_id in ('39332480205971', '17751337141135', '47967832428650')\n) as a \nleft join \n(\n     select\n          shop_id,\n          brand_show_type\n        from\n          ecom.shop_summary\n        where\n          ds = '20251208'\n          and brand_show_type in (1, 2)\n) as b on a.shop_id = b.shop_id\nleft join \n(\n    select \n    shop_id\n    from \n    ecom.shop_brand_feature\n    where ds = '20251208'\n) as c on a.shop_id = c.shop_id \nleft join \n(\n     SELECT shop_id\n            ,max(evaluation_score) as evaluation_score\n        from ecom.shop_rating\n        where ds =   '20251209'\n        group by shop_id\n) as d on a.shop_id = d.shop_id"
+  },
+  {
+    "id": 43,
+    "question": "查询2025年12月24日，商品表中存在哪些不同的店铺橱窗状态？",
+    "sql": "select\n    shop_window_status_nm\nfrom\n    ecom.product_attribute\nwhere\n    ds = 20251224\ngroup by \n    shop_window_status_nm"
+  },
+  {
+    "id": 44,
+    "question": "查询2025年12月20日商品ID为10000152036065,70005456520002,39485687499190,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,的商品ID、店铺uin、商品名称、头图图片和SKU最低价格。",
+    "sql": "SELECT\n    CAST(product_id AS bigint) AS product_id\n    ,shop_id\n    ,product_name\n    ,split(head_img_info, ',')[0] AS head_img\n    ,sku_min_price\nFROM\n    ecom.product_attribute\nWHERE\n    ds = 20251220\n    AND product_id in (80320011357095, 70005456520002, 39485687499190)"
+  },
+  {
+    "id": 45,
+    "question": "2025年8月24日，订单编号为'9268328987407625752'的订单，对应的订单号和买家用户ID是什么？",
+    "sql": "select\n  order_id,\n  user_id\nfrom\n  ecom.order_pay_detail\nwhere\n  ds = '20250824'\n  and std_order_id in ('9268328987407625752')"
+  },
+  {
+    "id": 46,
+    "question": "查询2025年11月30日商品ID为10000182192960的商品的所有属性信息。",
+    "sql": "select\n    * \nfrom\n    ecom.product_attribute\nwhere\n    ds = 20251130\n    and product_id = 22171443502976"
+  },
+  {
+    "id": 47,
+    "question": "查询2025年11月18日的店铺列表，包括店铺ID、店铺昵称、商户名称、主体类型（主体类型C、主体类型D、主体类型B、主体类型E、主体类型G、主体类型A、主体类型F或默认）、店铺创建时间、创建天数（从创建到2025年11月18日的天数）以及店铺类型（店铺类型A、店铺类型B、店铺类型C、店铺类型D、店铺类型F、店铺类型E、店铺类型G、店铺类型H、店铺类型I或默认）。",
+    "sql": "select shop_id,nick_name,merchant_name  ,  \n    case when subject_type = '2' then '主体类型C'\n        when subject_type = '3' then '主体类型D'\n        when subject_type = '4' then '主体类型B'\n        when subject_type = '1708' then '主体类型E'\n        when subject_type = '2401' then '主体类型G'\n        when subject_type = '2500' then '主体类型A'\n        when subject_type = '2502' then '主体类型F'\n        else '默认' end as shop_body_type,\n        create_time,\n        to_unixtime(cast(date_parse('20251118', '%Y%m%d') AS timestamp)) AS unix_timestamp,\n        cast ((to_unixtime(cast(date_parse('20251118', '%Y%m%d') AS timestamp)) - create_time)/86400 as int) as create_days,\n\n    case when shop_type = '1' then \"店铺类型A\" \n        when shop_type = '2' then \"店铺类型B\"\n        when shop_type = '3' then \"店铺类型C\"\n        when shop_type = '4' then \"店铺类型D\"\n        when shop_type = '5' then \"店铺类型F\"\n        when shop_type = '6' then \"店铺类型E\"\n        when shop_type = '7' then \"店铺类型G\"\n        when shop_type = '1001' then \"店铺类型H\"\n        when shop_type = '1002' then \"店铺类型I\"\n    else '默认' end as shop_type\n\n\n    from ecom.shop_base_info\n    where ds = '20251118'"
+  },
+  {
+    "id": 48,
+    "question": "查询所有品牌店铺标识为2的店铺分析数据。",
+    "sql": "select *\nfrom\n    ecom.shop_summary\nwhere\n    is_brand = 2"
+  },
+  {
+    "id": 49,
+    "question": "查询2025年11月27日，订单ID包含'6236912022135483139'的所有平台券使用记录。",
+    "sql": "select *\nfrom ecom.platform_coupon_use\nwhere ds='20251127' and order_id like '%6236912022135483139%'"
+  },
+  {
+    "id": 50,
+    "question": "在2025年7月1日完成开店的店铺有多少家？",
+    "sql": "select \ncount (distinct shop_id)\nfrom ecom.shop_summary\nwhere open_date = '20250701'"
+  },
+  {
+    "id": 51,
+    "question": "查询2025年11月19日的店铺列表，包括店铺ID、店铺昵称和商户名称。",
+    "sql": "select ds,\n       shop_id,\n       nick_name as shop_name,\n       merchant_name\nfrom ecom.shop_base_info\nwhere ds = 20251119"
+  },
+  {
+    "id": 52,
+    "question": "主播ID为13104805593617900在2025年12月22日的GMV是多少？",
+    "sql": "select \n    sum(order_price/100)\nfrom ecom.order_pay \nwhere statis_day = 20251222\nand anchor_id = '17659080192167194'"
+  },
+  {
+    "id": 53,
+    "question": "截至2025年12月21日，注册时间在90天内的商家有哪些？请按照他们入驻的时长（新店期A、新店期B、新店期C、新店期D）进行分组，并列出店铺ID和注册日期。",
+    "sql": "SELECT \n        shop_id\n        ,register_date\n        ,CASE \n            WHEN '20251221' - register_date <= 10 THEN '新店期A'\n            WHEN '20251221' - register_date <= 30 THEN '新店期B'\n            WHEN '20251221' - register_date <= 60 THEN '新店期C'\n            WHEN '20251221' - register_date <= 90 THEN '新店期D'\n        END AS duration_group\n    FROM ecom.shop_summary\n    WHERE ds = '20251221'\n        AND register_date >= 20250923 -- 仅保留注册90天内商家"
+  },
+  {
+    "id": 54,
+    "question": "查询2025年12月20日，商品ID为10000365924071、10000345251353的商品的所有基本信息。",
+    "sql": "select * from ecom.product_attribute\nwhere ds=20251220 and  product_id in (56547459857252, 66857769589366, 33127424215474)"
+  },
+  {
+    "id": 55,
+    "question": "查看2025年12月07日的店铺基础数据（前100条）。",
+    "sql": "select * from ecom.shop_base_info where ds = 20251207 limit 100"
+  },
+  {
+    "id": 56,
+    "question": "2025年12月9日，订单来源类型为9且订单金额大于0的支付订单数是多少？",
+    "sql": "select count(distinct order_id) from ecom.order_pay where statis_day = 20251209 and order_src_type = 9 and  order_price > 0"
+  },
+  {
+    "id": 57,
+    "question": "统计2024年1月1日至2025年11月30日期间，按月份和GMV最高的商品所属一级类目分组，针对行业为'类目E'且有效、商户类型为101和102的店铺，每日平均有过状态A商品（基于2025年12月1日全量商品快照中首次上架时间判断）的店铺数是多少？",
+    "sql": "SELECT\n    substr(a.ds, 1, 6) as statis_month\n    , a.cate_level1\n    , COUNT(distinct \n            case when cast(a.ds as string) >= from_unixtime(b.listing_time, 'yyyyMMdd') THEN b.shop_id else NULL end ) as had_up_product_shop_cnt -- 有过商品店铺数\n    , count(distinct ds) as days\n    , COUNT(distinct \n            case when cast(a.ds as string) >= from_unixtime(b.listing_time, 'yyyyMMdd') THEN b.shop_id else NULL end )/ count(distinct ds) as avg_had_up_product_shop_cnt\nFROM\n(\nSELECT\n    ds\n    , shop_id\n    , CASE\n        WHEN top_industry IS NULL\n        OR top_industry = '' THEN '其他'\n        ELSE top_industry\n    END AS industry\n    , CASE\n        WHEN top_cate_level1 IS NULL\n        OR top_cate_level1 = '' THEN '其他'\n        ELSE top_cate_level1\n    END AS cate_level1\n    ,  CASE\n        WHEN top_cate_level2 IS NULL\n        OR top_cate_level2 = '' THEN '其他'\n        ELSE top_cate_level2\n    END AS cate_level2 \nFROM\n        ecom.shop_summary\n    WHERE\n        ds >= 20240101 and ds <= 20251130 -- 20251211\n        AND shop_id IS NOT NULL\n        AND shop_id <> 0\n        AND acct_type IN (\n            101,\n            102\n        )\n        AND top_industry = '类目E' and is_valid = 1 -- 店铺有效\n) a \nJOIN \n(\n    select shop_id, \n       min(listing_time) as listing_time \n    from ecom.product_attribute -- 全量商品表\n    where ds = 20251201 \n          and industry = '类目E' \n          and product_status_nm = '状态A' -- 商品状态A状态有过\n    group by shop_id, listing_time\n) b on a.shop_id = b.shop_id\ngroup by substr(a.ds, 1, 6) \n    , a.cate_level1"
+  },
+  {
+    "id": 58,
+    "question": "查询2025年12月26日店铺昵称为“店铺X”的店铺详细信息。",
+    "sql": "select * from\necom.shop_base_info \nwhere ds = 20251226\nand nick_name = '店铺X'"
+  },
+  {
+    "id": 59,
+    "question": "在2025年12月2日，有哪些不同的发券场景的平台券被使用了？",
+    "sql": "select distinct scene\nfrom ecom.platform_coupon_use \nwhere ds = 20251202"
+  },
+  {
+    "id": 60,
+    "question": "查询商户号为1664910630的店铺在2025年12月3日的店铺shop_id是什么？",
+    "sql": "select sub_mch_id, shop_id from ecom.shop_base_info\n    WHERE ds = 20251203 and sub_mch_id = 100010"
+  },
+  {
+    "id": 61,
+    "question": "查看2025年12月16日的商品数据，所有商品的预售最晚结束时间有哪些？",
+    "sql": "select distinct max_presale_end_time\nfrom ecom.product_attribute\nwhere ds='20251216'"
+  },
+  {
+    "id": 62,
+    "question": "在2025年10月期间，以下店铺各自的GMV总额（元）是多少？店铺ID包括：100023、100016、100034。",
+    "sql": "select shop_id, ROUND(SUM(pay_order_gmv) / 100, 2) as GMVAverage from ecom.shop_summary where shop_id in (100023, 100016, 100034)\nand ds between 20251001 and 20251031\ngroup by shop_id"
+  },
+  {
+    "id": 63,
+    "question": "查询2025年12月28日，商户名称为‘公司A’的店铺的所有基础信息。",
+    "sql": "select * from\necom.shop_base_info \nwhere ds = 20251228\nand merchant_name = '公司A'"
+  },
+  {
+    "id": 64,
+    "question": "查询2025年12月8日，商品ID为 '39332480205971', '17751337141135', '47967832428650', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '' 的商品，其对应的店铺ID、店铺的R标类型（品牌自营或品牌授权）、店铺是否为热招品牌店铺，以及店铺的DSR评价分。",
+    "sql": "select \na.product_id,\na.shop_id,\nbrand_show_type,\ncase when c.shop_id is not null then 1 else 0 end as is_high_level,\nevaluation_score\nfrom \n(select \nproduct_id,\nshop_id \nfrom \necom.product_attribute\nwhere ds = '20251208'\nand product_id in ('39332480205971', '17751337141135', '47967832428650')\n) as a \nleft join \n(\n     select\n          shop_id,\n          brand_show_type\n        from\n          ecom.shop_summary\n        where\n          ds = '20251208'\n          and brand_show_type in (1, 2)\n) as b on a.shop_id = b.shop_id\nleft join \n(\n    select \n    shop_id\n    from \n    ecom.shop_brand_feature\n    where ds = '20251208'\n) as c on a.shop_id = c.shop_id \nleft join \n(\n     SELECT shop_id\n            ,max(evaluation_score) as evaluation_score\n        from ecom.shop_rating\n        where ds =   '20251208'\n        group by shop_id\n) as d on a.shop_id = d.shop_id"
+  },
+  {
+    "id": 65,
+    "question": "2025年12月4日，商户类型为小店或组件4.0，且店铺状态在100（开店完成，正常经营中）到9000（预注销）之间（不含9000）的店铺有多少个？",
+    "sql": "select count(1)\r\nfrom ecom.shop_base_info\r\nwhere ds = 20251204\r\n and acct_type in (101,102)\r\n and base_info_ec_acct_status >= 100 and base_info_ec_acct_status < 9000\r\nlimit 100"
+  },
+  {
+    "id": 66,
+    "question": "查询2025年12月28日法人身份证号码为341225198903048923的店铺的所有基础信息。",
+    "sql": "select * from\necom.shop_base_info \nwhere ds = 20251228\nand id_card_no = 840845354750375714"
+  },
+  {
+    "id": 67,
+    "question": "2026年1月4日当天，有哪些好店标店铺（品牌、热销、服务等类型）的在架商品总数达到4个或以上，但其中非隐藏的商品数量少于4个？",
+    "sql": "select \na.*,\nshop_name,\nup_product_no_hide_cnt,\nshop_up_product_cnt\nfrom \n(select shop_id,\ntag_type \nfrom \necom.shop_quality_mark\nwhere ds = '20260104'\n) as a \nleft join \n(\nselect shop_id,\nshop_name,\nup_product_no_hide_cnt,\nshop_up_product_cnt\nfrom \necom.shop_summary\nwhere ds = '20260104'\n) as b on a.shop_id = b.shop_id \nwhere shop_up_product_cnt>=4 and  up_product_no_hide_cnt<4"
+  },
+  {
+    "id": 68,
+    "question": "截至2025年12月07日，开店超过一年的店铺有哪些？请列出这些店铺的ID、开店完成时间、开店年限以及主营类目。",
+    "sql": "select \n        shop_id,\n        open_finish_time,\n        datediff('20251207', open_date) / 365 as open_years,\n        main_cate -- 直接使用main_cate字段\n    from ecom.shop_summary\n    where ds = '20251207'\n    and open_date > 0 -- 过滤无效开店时间\n    and datediff('20251207', open_date) > 365"
+  },
+  {
+    "id": 69,
+    "question": "从2025年11月16日起，当下单场景为1365且场景备注为'kf_favorite_store'时，按日期统计的总订单价格是多少？",
+    "sql": "SELECT statis_day\n       ,scene\n       ,scene_note\n       ,sum(order_price) AS total_price\nFROM ecom.order_sku_pay\nWHERE statis_day >= '20251116'\nand scene =1365 \nand scene_note = 'kf_favorite_store'\ngroup by statis_day,scene,scene_note"
+  },
+  {
+    "id": 70,
+    "question": "查询2025年11月24日，所有下单来源为短视频的订单明细，包括店铺ID、店铺名称、买家ID、订单号、订单创建时间、支付时间、订单价格、下单场景代码、场景备注、三级入口场景、短视频场景，并根据复杂的场景规则为每个订单生成一个卡片场景分类名称。",
+    "sql": "SELECT \n        shop_id as appuin\n       ,shop_name\n       ,user_id\n       ,order_id\n       ,create_timestamp\n       ,pay_timestamp\n       ,order_price\n       ,scene\n       ,scene_note\n       ,entrance_scene\n       ,video_scene\n       ,case when scene = 1177 AND entrance_scene in (177,178) then '场景C'\n             when scene = 1184 AND entrance_scene in (38) then '场景D'\n             when scene = 1365 AND scene_note like '%card_type%' then '场景H'\n             when scene = 1365 AND scene_note = 'kf_invite_order' then '入口E'\n             when scene = 1365 AND scene_note = 'kf_invite_order_of_ai' then '入口D'\n             when scene = 1365 AND scene_note = 'kf_recommend_product' then '场景B'\n             when scene = 1365 AND scene_note = 'kf_product_share_msg' then '场景F'\n             when scene = 1365 AND scene_note = 'kf_ai_product_share_msg' then '场景E'\n             when scene = 1365 AND scene_note = 'kf_profile' then '入口A'\n             when scene = 1365 AND scene_note = 'kf_talent_profile' then '入口B'\n             when scene = 1365 AND scene_note = 'kf_sys_send_order_submit_remind' then '入口H'\n             when scene = 1365 AND scene_note = 'kf_kf_send_order_submit_remind' then  '入口G'\n             when scene = 1365 AND scene_note = 'kf_ai_send_order_submit_remind' then  '入口F'\n             when scene = 1312 then '入口C'\n             when scene = 1365 then '1365-其他'\n             else '其他' end as scene_name\nFROM ecom.order_sku_pay\nWHERE statis_day = '20251124' and scene =1184\nGROUP BY \n        shop_id\n       ,user_id\n       ,shop_name\n       ,order_id\n       ,create_timestamp\n       ,pay_timestamp\n       ,order_price\n       ,scene\n       ,scene_note\n       ,entrance_scene\n       ,video_scene\n       ,case when scene = 1177 AND entrance_scene in (177,178) then '场景C'\n             when scene = 1184 AND video_scene in (38) then '场景D'\n             when scene = 1365 AND scene_note like '%card_type%' then '场景G'\n             when scene = 1365 AND scene_note = 'kf_invite_order' then '入口E'\n             when scene = 1365 AND scene_note = 'kf_invite_order_of_ai' then '入口D'\n             when scene = 1365 AND scene_note = 'kf_recommend_product' then '场景B'\n             when scene = 1365 AND scene_note = 'kf_product_share_msg' then '场景F'\n             when scene = 1365 AND scene_note = 'kf_ai_product_share_msg' then '场景E'\n             when scene = 1365 AND scene_note = 'kf_profile' then '入口A'\n             when scene = 1365 AND scene_note = 'kf_talent_profile' then '入口B'\n             when scene = 1365 AND scene_note = 'kf_sys_send_order_submit_remind' then '入口H'\n             when scene = 1365 AND scene_note = 'kf_sys_send_order_submit_remind' then '入口G'\n             when scene = 1365 AND scene_note = 'kf_sys_send_order_submit_remind' then '入口F'\n             when scene = 1312 then '入口C'\n             when scene = 1365 then '1365-其他'\n             else '其他' end"
+  },
+  {
+    "id": 71,
+    "question": "查询分区日期大于等于2025120900，并且店铺昵称更新来源不为空的店铺基础信息，返回前10条记录。",
+    "sql": "select * from ecom.shop_base_info where ds >= 100012 and nvl(nickname_update_source, '') <> ''  limit 10"
+  },
+  {
+    "id": 72,
+    "question": "2025年12月28日，哪些店铺的在架商品数超过10000个？",
+    "sql": "select * from ecom.shop_summary\nwhere ds = 20251228 \nand shop_up_product_cnt > 10000"
+  },
+  {
+    "id": 73,
+    "question": "查找2025年11月24日订单号为UID-3732506088668017920的成交订单详情",
+    "sql": "select * from ecom.order_pay where statis_day=20251124 and order_id=' UID-5922527144998969114'"
+  },
+  {
+    "id": 74,
+    "question": "查询店铺shop_id为3978115484在2024年11月1日之后的所有基础信息，最多返回2000条记录。",
+    "sql": "select *\nfrom ecom.shop_base_info\nwhere ds > 20241101\n and shop_id == 100036\n limit 2000"
+  },
+  {
+    "id": 75,
+    "question": "查询2025年12月9日，一级类目为'类目B'、品类为'子类目A'、价格不超过1000元，且商品状态为5、6、10或11的商品，需要列出店铺uin、商品ID和商品名称。",
+    "sql": "select shop_id, product_id, product_name\nfrom ecom.product_attribute\nwhere ds = 20251209 and cate_level1 = '类目B' and cate_leaf = '子类目A' and price <= 1000 and product_status_nm in (5, 6, 10, 11)"
+  },
+  {
+    "id": 76,
+    "question": "查找注册编号为92130631MAE4LY53XG的店铺在2025年11月26日的所有基础信息。",
+    "sql": "select * from ecom.shop_base_info where ds = 20251126 and registration_no = '92130631MAE4LY53XG'"
+  },
+  {
+    "id": 77,
+    "question": "在2025年12月3日，店铺ID为3967946012下，所有满足以下任一条件的商品所涉及的品类编号有哪些？条件1：商品类型为商品类型C或商品类型A，且商品状态为5（上架中）。条件2：商品类型为商品类型D商品，且商品状态为1或2（审核通过）。同时排除店铺uin为0的商品。",
+    "sql": "SELECT\n                shop_id,\n                cate_leaf_id\n            FROM\n                ecom.product_attribute \n                where ds = '20251203'\n                and shop_id = '100028'\n                and \n                (\n                    (\n                        -- 商品类型包含：商品类型C 商品类型A 商品类型B 并且状态为 5-上架中\n                        product_type IN ('FinderShopLocalLife', 'FinderShopSPU')\n                        AND product_status IN (5)\n                    )\n                    OR (\n                        -- 商品类型为：商品类型D，并且状态为1，2 审核通过\n                        product_type IN ('FinderFlashSale')\n                        AND product_status IN (1, 2)\n                    )\n                )\n                AND shop_id <> 0 -- 部分商品的shop_id为0，待排查\n            GROUP BY\n                shop_id,\n                cate_leaf_id"
+  },
+  {
+    "id": 78,
+    "question": "查询截至2025年12月8日，商户类型为小店（101）或组件4.0（102）、主体类型为2或4、且店铺状态处于正常经营中（状态值在100到9000之间，即非注销状态）的店铺列表，需要包含店铺shop_id、商户号、主体类型和注册编号这些信息。",
+    "sql": "select shop_id, sub_mch_id, subject_type, registration_no\nfrom ecom.shop_base_info\nwhere ds == 20251208\n and acct_type in (101,102)\n and subject_type in (\"2\", \"4\")\n and base_info_ec_acct_status >= 100 and base_info_ec_acct_status < 9000\nlimit 100004"
+  },
+  {
+    "id": 79,
+    "question": "在2025年11月1日至2025年12月29日期间，被标记为好店（包括服务好店、热销好店或品牌好店）的店铺，按店铺统计2025年11月和2025年12月分别有多少天被标记为好店？",
+    "sql": "select shop_id\n            ,count(distinct case when substr(ds,1,6) = '100001' then ds end ) as day_last\n            ,count(distinct case when substr(ds,1,6) = '100002' then ds end ) as day_this\n    from ecom.shop_quality_mark\n    where ds >= '20251101'\n    and ds <= '20251229'\n    and (service_tag = 1 or pay_tag = 1 or brand_tag = 1)\n    group by shop_id"
+  },
+  {
+    "id": 80,
+    "question": "查询数据日期为2025年12月28日时，商品ID为10000315126817、66623265266260、10000315591748的商品，它们的基本属性信息是什么？",
+    "sql": "select *\nfrom \necom.product_attribute\nwhere ds= '20251228'\nand \nproduct_id in (12067876216660, 66623265266260, 96160968041311)"
+  },
+  {
+    "id": 81,
+    "question": "查询2025年12月9日发券场景为'场景A'的所有平台券使用记录。",
+    "sql": "SELECT *\nfrom ecom.platform_coupon_use\nwhere ds = 20251209 and scene = '场景A'"
+  },
+  {
+    "id": 82,
+    "question": "查询商品ID为10000283584432的商品在2025年11月25日的商品名称、店铺UIN以及其第一张头图图片信息是什么？",
+    "sql": "select\n        product_id\n        , product_name\n        , shop_id \n        , split(head_img_info, ',')[0] as img\n    from\n        ecom.product_attribute\n    where\n        ds = 20251125\n        and product_id = '18533222164279'"
+  },
+  {
+    "id": 83,
+    "question": "查询2025年11月23日，属于特定产品ID列表和特定店铺ID列表的店铺的店铺ID和营业执照上的商户名称。产品ID列表为：66020348096490,24363348598542,93768714344419,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,；店铺ID列表为：,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,。",
+    "sql": "select shop_id, merchant_name\n-- from ecom.shop_classification\n    from ecom.shop_base_info    \n\nwhere ds = 20251123\n-- and  product_id in (66020348096490, 24363348598542, 93768714344419)\nand shop_id in (100031, 100027, 100021)"
+  },
+  {
+    "id": 84,
+    "question": "在2025年11月27日支付的订单中，发券场景为普通活动类型B、活动类型C或场景A的订单，涉及哪些不同的活动ID和对应的发券场景？",
+    "sql": "select distinct activity_id\n    ,scene\nfrom ecom.platform_coupon_use \nwhere ds='20251127'\n    and substr(pay_time, 1, 8)='20251127'\n    -- and scene in(8,9,10) -- 通用活动类型B/活动类型C活动类型B/朋友赞活动类型B\n    and scene in('普通活动类型B','活动类型C','场景A') -- 通用活动类型B/活动类型C活动类型B/朋友赞活动类型B"
+  },
+  {
+    "id": 85,
+    "question": "查询在2025年11月23日首次下单的买家用户ID，这些订单需满足订单来源类型为9且订单价格大于0。",
+    "sql": "SELECT user_id\n    FROM (\n        SELECT \n            user_id, \n            order_price,\n            order_id, \n            pay_time, \n            SUBSTR(pay_time, 1, 8) AS pay_day,\n            scene, \n            order_channel, \n            ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY pay_time ASC) AS rn \n        FROM ecom.order_pay_detail  \n        WHERE ds = 20251123 AND order_src_type = 9 AND order_price > 0 \n            AND SUBSTR(pay_time, 1, 8) <= 20251123\n    ) t \n    WHERE rn = 1 AND pay_day = 20251123"
+  },
+  {
+    "id": 86,
+    "question": "查询2025年12月10日，一级类目为“类目D”的所有商品信息。",
+    "sql": "select *\n from \n ecom.product_attribute\n where ds = '20251210'\n and cate_level1 = '类目D'"
+  },
+  {
+    "id": 87,
+    "question": "在2025年12月1日至14日期间，领取的业务场景为'活动类型A'、业务类型为'COMPEN_SCENE_TYPE_AFTERSALE_BUSSI_BLAME_EXTRA_PAY'的平台券中，总领取券数是多少？其中，在领取后24小时内、48小时内、72小时内被使用的券数分别是多少？以及各自相对于总领取券数的使用率是多少？",
+    "sql": "select count(distinct t0.coupon_id)\n          ,count(distinct if(get_ds < pay_time and get_ds + 24*3600 > pay_time,t1.coupon_id,null))\n          ,count(distinct if(get_ds < pay_time and get_ds + 24*3600 > pay_time,t1.coupon_id,null)) / count(distinct t0.coupon_id)\n          ,count(distinct if(get_ds < pay_time and get_ds + 48*3600 > pay_time,t1.coupon_id,null))\n          ,count(distinct if(get_ds < pay_time and get_ds + 48*3600 > pay_time,t1.coupon_id,null)) / count(distinct t0.coupon_id)\n          ,count(distinct if(get_ds < pay_time and get_ds + 72*3600 > pay_time,t1.coupon_id,null))\n          ,count(distinct if(get_ds < pay_time and get_ds + 72*3600 > pay_time,t1.coupon_id,null)) / count(distinct t0.coupon_id)\n    from(\n        select coupon_id                        \n              ,from_unixtime(min(get_timestamp),'yyyyMMddHHmmss') as get_ds\n        from ecom.platform_coupon_claim\n        where ds = 20251217\n          and get_ds >= 20251201\n          and get_ds <= 20251214\n          and scene = 1\n          and traffic_type = 'COMPEN_SCENE_TYPE_AFTERSALE_BUSSI_BLAME_EXTRA_PAY'\n        group by coupon_id\n    ) t0\n    left join(\n        select coupon_id\n              ,min(pay_time) as pay_time\n        from ecom.platform_coupon_use\n        where ds = 20251217\n          and from_unixtime(pay_time, 'yyyyMMdd') >= 20251201\n        group by coupon_id\n    ) t1\n    on t0.coupon_id = t1.coupon_id"
+  },
+  {
+    "id": 88,
+    "question": "主播ID为13104805593617900，在2025年11月23日至2025年12月22日期间，其带货订单的总GMV是多少？",
+    "sql": "select sum(order_price/100)\n   from ecom.order_pay \n    where statis_day between 20251123 and 20251222\n    and anchor_id = '17659080192167194'"
+  },
+  {
+    "id": 89,
+    "question": "找出在2025年7月1日注册，但在2025年11月20日当天没有支付订单的店铺。",
+    "sql": "select\n    t1.shop_id\nfrom \n(\n    select\n        shop_id\n    from ecom.shop_base_info\n    where\n        ds = '20251120'\n        and from_unixtime(base_info_register_time,'yyyyMMdd') = '20250701'\n) t1\nleft join \n(\n    select \n        shop_id\n        ,sum(1) as order_num\n    from ecom.order_pay_detail\n    where\n        ds = 20251120\n    group by \n        shop_id\n) t2\non t1.shop_id = t2.shop_id\nwhere\n    t2.shop_id is null"
+  },
+  {
+    "id": 90,
+    "question": "在2025年11月23日，品牌ID为30001685的热招品牌店铺，其店铺ID、店铺名称、品牌名分别是什么？同时，这些店铺的开店完成时间、是否升级自微信小店、升级完成时间以及品牌授权类型是什么？",
+    "sql": "select \na.*,\nopen_store_info_finish_time,\nbase_info_is_upgrade_wx_shop,\nupgrade_info_upgrade_timestamp,\nbrand_grant_type\nfrom \n(select \nshop_id,\nshop_name,\nname \nfrom \necom.shop_brand_feature\nwhere ds  = '20251123'\nand id = 100006\n-- and brand_id= 100005\n) as a \nleft join \n(\n    select \n    shop_id,\n    from_unixtime(open_store_info_finish_time,'yyyyMMdd') as open_store_info_finish_time,\n    open_store_info_merchant_shortname,\n    brand_grant_type,\n    base_info_is_upgrade_wx_shop,\n    from_unixtime(upgrade_info_upgrade_timestamp,'yyyyMMdd') as upgrade_info_upgrade_timestamp\n    from \n    ecom.shop_base_info\n    where ds  = '20251123'\n) as b on a.shop_id = b.shop_id"
+  },
+  {
+    "id": 91,
+    "question": "查询2026年01月03日这天，发券业务场景为普通活动类型B、活动类型C或场景A的平台券使用记录，需要展示优惠券ID、批次ID、活动ID、商家ID、用户ID、商品列表、订单ID、SPU ID、优惠金额、订单创建时间以及活动ID，并且将商品列表展开，获取其中的SPU ID，最终只返回前10条数据。",
+    "sql": "select \n                coupon_id\n                ,batch_id\n                ,campaign_id\n                ,shop_id\n                ,user_id\n                ,product_list\n                ,order_id\n                ,get_json_object(product, '$.spu_id') as spu_id\n                ,amount\n                ,create_time\n                ,activity_id\n            from ecom.platform_coupon_use \n            lateral view explode(from_json(product_list, 'array<string>')) as product\n            where ds = 20260103\n                and scene_code in (8, 9, 10)  -- 8 通用活动类型B，9 活动类型C活动类型B，10 朋友赞活动类型B\n                limit 10"
+  },
+  {
+    "id": 92,
+    "question": "查询在2025年11月20日分区数据中，订单来源类型为9、订单价格大于0、支付日期在2025年11月20日及之前、支付时间在2000年1月1日之后，且买家用户ID为134240402、100009、100011（重复）（重复）（重复）的这些订单的详细信息，包括用户ID、订单价格、订单号、支付时间、支付时间戳、支付日期、下单场景和视频号小店订单类型。",
+    "sql": "SELECT  \n                        user_id\n                        , order_price\n                        , order_id\n                        , pay_time\n                        , pay_timestamp\n                        , substr(pay_time, 1, 8) AS pay_day\n                        , scene\n                        , order_channel\n                        -- , row_number() over (partition by user_id order by pay_time asc) as rn \n                    FROM ecom.order_pay_detail  \n                    where ds = '20251120' \n                    AND order_src_type = 9 \n                    and order_price > 0\n                    AND substr(pay_time, 1, 8) <= '20251120' \n                    and pay_timestamp > 100008\n                    and user_id in (100007, 100009, 100011)"
+  },
+  {
+    "id": 93,
+    "question": "查询2025年11月26日的数据中，对于在2025年8月27日之后支付、且首次领取了活动类型A中的一单券的用户，按用户统计以下信息：最近一次和首次一单券使用时间、一单券使用次数、领取场景数、是否重复使用一单券（即使用次数大于等于2）、是否在场景I场景领取过一单券，并筛选出重复使用一单券的用户。",
+    "sql": "SELECT \n    user_id\n    , MAX(pay_time) as last_pay_time -- 最近一次一单券使用时间\n    , MIN(pay_time) as first_pay_time -- 首次一单券使用时间\n    , COUNT(DISTINCT coupon_id) as second_coupon_use_times -- 一单券使用次数\n    , COUNT(DISTINCT request_scene) as request_scene_cnt -- 一单券领取场景数\n    , CASE WHEN COUNT(DISTINCT coupon_id) >= 2 THEN 1 ELSE 0 END as duplicated_flag -- 是否重复使用一单券\n    , MAX(CASE WHEN request_scene = '100003' THEN 1 ELSE 0 END) as is_special_scene -- 是否在场景I场景领取过一单券\nFROM ecom.platform_coupon_use t1 \nWHERE ds = '20251126'\n    AND substr(pay_time, 1, 8) >= '20250827'\n    AND scene = '活动类型A'\n    AND is_get = 1 \n    AND sub_scene = 11 -- 一单券\nGROUP BY user_id\nHAVING CASE WHEN COUNT(DISTINCT coupon_id) >= 2 THEN 1 ELSE 0 END = 1"
+  },
+  {
+    "id": 94,
+    "question": "在2025年12月22日，店铺ID为3827843673的品牌授权店铺，其对应的认证品牌ID是什么？",
+    "sql": "select\n        shop_id\n        , brand_id\n    from \n        ecom.shop_summary \n    where \n        ds =  20251222\n        and brand_show_type = 2\n        and shop_id = '100015'"
+  },
+  {
+    "id": 95,
+    "question": "查询在2025年12月28日，店铺shop_id为3972785597的注册编号、开店时间、店铺业务分类、店铺类型和店铺状态是什么？",
+    "sql": "select shop_id  \n                ,max(registration_no) as registration_no\n                ,min(open_store_info_finish_time) as open_ds\n                ,max(acct_sub_type) as acct_sub_type\n                ,max(shop_type) as shop_type\n                ,max(base_info_ec_acct_status) as base_info_ec_acct_status\n        from ecom.shop_base_info  \n        where ds =  '20251228'\n        and shop_id = '100033'\n        group by shop_id"
+  },
+  {
+    "id": 96,
+    "question": "查询2025年12月28日，店铺uin大于1000，且商品类型不是FinderShopSPU的所有在架商品（状态A/上架）的属性信息。",
+    "sql": "select *\nfrom ecom.product_attribute\n    where ds=20251228 and product_status_ori=5 and shop_id>1000\n    and product_type != 'FinderShopSPU'"
+  },
+  {
+    "id": 97,
+    "question": "查询2025年11月26日的订单成交明细数据，最多返回100条记录。",
+    "sql": "select*\n        \n        from  ecom.order_pay\n        where statis_day = 20251126\n        limit 100"
+  },
+  {
+    "id": 98,
+    "question": "查询2025年12月17日，商户名称中包含“广西品牌X健康产业有限公司”、“广西品牌X陈皮科技产业有限公司”、“广西品牌X甲丙龙农业开发有限公司”、“品牌X品牌X陈皮茶业有限公司”、“广西品牌X品牌X健康产业有限公司”、“品牌X普茶业有限公司”、“品牌X健康产业有限公司”、“品牌X茶业有限公司”、“新会品牌X农业有限公司”、“品牌X陈皮农业有限公司”，或者包含“品牌X”、“品牌X”、“品牌X”、“品牌X”、“品牌X”、“品牌X陈皮”、“品牌X甲丙龙”、“品牌X品牌X”、“品牌X品牌X”、“品牌X陈皮”这些关键词的店铺，需要提供哪些信息？",
+    "sql": "select shop_id, nick_name, merchant_name,entity_name\nfrom ecom.shop_base_info\nwhere ds=20251217\nand ( merchant_name regexp '(.*)广西品牌X健康产业有限公司(.*)|(.*)广西品牌X陈皮科技产业有限公司(.*)|(.*)广西品牌X甲丙龙农业开发有限公司(.*)|(.*)品牌X品牌X陈皮茶业有限公司(.*)|(.*)广西品牌X品牌X健康产业有限公司(.*)|(.*)品牌X普茶业有限公司(.*)|(.*)品牌X健康产业有限公司(.*)|(.*)品牌X茶业有限公司(.*)|(.*)新会品牌X农业有限公司(.*)|(.*)品牌X陈皮农业有限公司(.*)|(.*)品牌X普茶业有限公司(.*)'\nor merchant_name regexp '(.*)品牌X(.*)|(.*)品牌X(.*)|(.*)品牌X(.*)|(.*)品牌X(.*)|(.*)品牌X(.*)|(.*)品牌X陈皮(.*)|(.*)品牌X甲丙龙(.*)|(.*)品牌X品牌X(.*)|(.*)品牌X品牌X(.*)|(.*)品牌X陈皮(.*)')"
+  },
+  {
+    "id": 99,
+    "question": "2025年12月14日，各一级类目及其下属二级类目分别有多少个在架商品？",
+    "sql": "select \n       \n        cate_level1, -- 一级类目（索引）名称\n        cate_level2, -- 二级类目（索引）名称\n        count(1) num\nfrom ecom.product_attribute\nwhere ds='20251214'\nand product_status_ori = 5 -- 在架商品\ngroup by cate_level1, cate_level2"
+  },
+  {
+    "id": 100,
+    "question": "查询店铺3962381647在2025年12月1日的在架商品涉及的所有品牌，列出品牌ID、品牌中文名和品牌英文名。",
+    "sql": "select\n    brand_id\n    , max(brand_name)\n    , max(brand_name_en)\nfrom\n    ecom.product_attribute\nwhere\n    ds = 20251201\n    and shop_id = '100025'\n    and product_status_ori = 5\ngroup by \n    brand_id"
+  }
+]

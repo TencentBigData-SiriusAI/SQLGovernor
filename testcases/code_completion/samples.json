@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "prefix": "select distinct user_ext_,\n                from_user_,\n                deal_type_,\n                user_type_\nfrom db_06.table_008\nwhere deal_type_=1;\n\n\nselect t1.uin,\n       nvl(t2.is_vpn_user_30d, 0) as is_vpn_user_30d\nfrom\n  (select uin\n   from db_04.table_005) t1\nleft join\n  (select uin,\n          is_vpn_user_30d\n   from db_03.table_003\n   where ds='20250915') t2 on t1.uin=t2.uin;\n\n\nselect security_credit_rank,\n       count(distinct uin)\nfrom db_03.table_003\nwhere ds='20250915'\n  and nvl(is_vpn_user_30d, 0)=1\ngroup by security_credit_rank;\n\nselect fauthen_state,\n       count(distinct uin)\nfrom db_03.table_003\nwhere ds='20250915'\n  and nvl(is_vpn_user_30d, 0)=1\ngroup by fauthen_state;\n\nselect nvl(job_name,'未知'),count(",
+    "suffix": ")\nfrom \n(select distinct uin\nfrom db_03.table_003\nwhere ds='20250915'\n  and nvl(is_vpn_user_30d, 0)=1) t1 \nleft join \n(select uin,\n          nvl(job_name,'未知') as job_name\n   from db_03.table_004\n   where ds='20250916') t2 on t1.uin=t2.uin\ngroup by nvl(job_name,'未知')",
+    "ground_truth": "distinct t"
+  },
+  {
+    "id": 2,
+    "prefix": "select \n  feed_id_\nfrom db_05.table_006 \n-- 近1个月\nwhere substring(ds,1,8) between  '${YYYYMMDD-29}' and '${YYYYMMDD}'\nand rule_ = 'db_12.comment_risk'\n-- 标题中包含地区A\nand feed_title_ like '%地区A%'\n\n\n-- 通过title/tag/keyword/summary来圈，从9.1开始\nselect \n    -- count(DISTINCT feed_id_) as cnt\n    DISTINCT feed_id_\nfrom db_05.table_007\nwhere substring(ds,1,8) between  '${YYYYMMDD-17}' and '${YYYYMMDD}'\nand rule_ = 'db_12.comment_risk'\nand (title_ like '%地区A%' or content_tag_ like '%地区A%' or llm_pt_keyword_ like '%地区A%' or llm_pt_summary_ like '%地区A%')\n\n-- feed圈出来之后，然后圈评论用户\nselect \nDISTINCT\n    Uin_,\n    anchor_id_\nfrom db_05.table_006 \nwhere substring(ds,1,8) between  '${YYYYMMDD-29}' and '${YYYYMMDD}'\nand rule_ = 'db_12.comment_risk'\nand feed_id_ in (\n    select \n        DISTINCT feed_id_\n    from db_05.table_007\n    where substring(ds,1,8) between  '${YYYYMMDD-17}' and '${YYYYMMDD}'\n    and rule_ = 'db_12.comment_risk'\n    and (title_ like '%地区A%' or content_tag_ like '%地区A%' or llm_pt_keyword_ like '%地区A%' or llm_pt_summary_ like '%地区A%')\n)\n\n-- 搞一个tmp表，存到tmp表中\nuse db_11;\nCREATE TABLE if not exists comment_risk_user",
+    "suffix": "(\n\n)\n\n",
+    "ground_truth": "_with_american"
+  },
+  {
+    "id": 3,
+    "prefix": "SELECT \nc.imp_date as 分区,\nc.file_id as 认领单id,\nc.task_name as 认领单名,\nc.plat_src as 单据来源,\nc.biz_group as 商务组,\nc.create_user as 创建人,\nc.create_user_show as 创建人,\nc.biz_agent as 发起方签约商务,\nc.exe_biz_agent as 发起方执行商务,\nc.cmpny_id as 认领方厂牌ID,\nc.cmpny_name as 发起方厂牌名,\nc.cntrct_num as 认领方合同号,\nc.insert_time as 建单时间,\n\nc.song_id as 歌曲id,\nc.song_name as 歌曲名,\nc.singer_name as 歌手名,\nc.album_name as 专辑名,\nc.rcd_cp_start_date as 认领版权开始时间,\nc.rcd_cp_end_date as 认领版权结束时间,\nc.rcd_is_agent as 是否代理,\nc.cp_pct as 认领方版权占比,\nc.auth_type as 版权类型,\nc.song_status as 版权认领状态,\nc.status as 认领方协商状态,\nc.rcd_is_only as 是否重点,\nc.cq_is_agent as 词曲授权关系,\nc.cq_is_only as 词曲是否重点,\nc.is_email_sent as 是否已发送邮件,\n\nc.partner_company_id as 库内方厂牌ID,\nc.partner_company_name as 库内方厂牌名,\nc.partner_company_type as 库内方公司类型,\nc.orig_partner_company_id as 库内方原始版权方ID,\nc.orig_partner_company_name as 库内方原始版权方,\nc.contract_num as 库内方合同号,\nc.partner_start_date as 库内方授权开始时间,\nc.partner_end_date as 库内方授权结束时间,\nc.partner_pct as 库内方版权占比,\nc.biz_group as 库内方商务组,\nc.biz_agent as 库内方签约商务,\nc.exec_biz_agent as 库内方执行商务,\nc.record_status as 库内方协商状态,\n\nc.cp_loop_la as 模式A,\nc.conflict_status as 冲突情况,\nc.file_conflict_status as 整单状态,\nc.finish_time as 结束时间,\nc.sync_status as 曲库状态\n\nfrom db_02.table_002  partition(p_20250916) c\nwhere c.cp_loop_la like '%模式A%'\n--where c.song_id in ()\n\n\n\nselect a",
+    "suffix": "\na.title,\na.efrom,\na.eto,\na.cc,\na.insert_time\n\nfrom db_10.copyright_info::db_16.songbank_email partition(p_20250916) a\nwhere a.insert_time >= '2025-07-28'\n\n",
+    "ground_truth": ".dt,"
+  },
+  {
+    "id": 4,
+    "prefix": "SELECT *\nFROM cdp_data_science::match_monitor_stay_days\nWHERE",
+    "suffix": "'",
+    "ground_truth": " kp_imp_date='20250901"
+  },
+  {
+    "id": 5,
+    "prefix": "create table merchant_data_check\n  (\n    fpar_date  bigint comment '日期',\n    tb_name string comment '表名',\n    is_pass_flag string comment '是否通过 1:是  0:否',\n  );\n\ninsert overwrite table merchant_data_check partition (fpar_date=YYYYMMDD)\n(\n    fpar_date,\n    tb_name,\n    is_pass_flag,\n)\n  select \n  ",
+    "suffix": " from merchant_data_check;",
+    "ground_truth": "fpar_date\ntb_name\nis_pass_flag\n"
+  },
+  {
+    "id": 6,
+    "prefix": "drop table data_app::quality_inspection_dataset;\nCREATE TABLE data_app::quality_inspection_dataset(\n    requirement_id STRING COMMENT '需求单号（临时方案日期），即分区',\n    source STRING COMMENT '数据来源'\n    md5 STRING COMMENT '图片/视频md5',\n    cos_signed_url STRING COMMENT '数据的cos_url',\n    cn_caption STRING COMMENT '中文caption',\n    en_caption STRING COMMENT '英文caption',\n    processed_video_url STRING COMMENT 'caption时长对齐的视频',\n    down_sample STRING COMMENT '下采样后的视频',\n    vae_decode_cos_url  STRING COMMENT 'decode视频',\n    machine_q_review_1 STRING COMMENT '机器质检结果1',\n    machine_q_review_1 STRING COMMENT '机器质检结果1',\n    machine_q_review_1 STRING COMMENT '机器质检结果1',\n    machine_q_review_1 STRING COMMENT '机器质检结果1',\n    ",
+    "suffix": "\n)\nPARTITION BY LIST(requirement_id)\n(\n    PARTITION p_202509151200 VALUES IN ( '223005401501' ),\n    PARTITION default\n)\nSTORED AS ORCFILE COMPRESS;\n\n\n\n",
+    "ground_truth": "machine_q_review_1 STRING COMMENT '机器质检结果1',"
+  },
+  {
+    "id": 7,
+    "prefix": "INSERT OVERWRITE TABLE ecommerce_ops::search_click_behavior_df PARTITION (ds = '${YYYYMMDD}') (ds,\n                                                                                                                           shop_id,\n                                                                                                                           shop_name,\n                                                                                                                           come_from)\nselect '${YYYYMMDD}' as ds,\n       shop_id,\n       base_info_nick_name as shop_name,\n       merchant_name\n    --    'kws' as come_from\nfrom db_14::shop_base_info_day\nwhere ds = ${YYYYMMDD}\n  and (base_info_nick_name like '%标签C%'\n       or base_info_nick_name like '%标签B%'\n       or base_info_nick_name like '%标签A%')\n\n\n\nCREATE TABLE search_click_behavior_df(\n    ds BIGINT COMMENT 'ds',\n    shop_id BIGINT COMMENT 'shop_id',\n    shop_name STRING COMMENT 'shop_name',\n    come_from STRING COMMENT 'come_from'\n)\nCOMMENT ",
+    "suffix": "\nSTORED AS ORCFILE;\n\n\n\n\n-- SELECT DISTINCT ds,\n--                    shop_id_,\n--                    product_ids_,\n--                    reason_number_,\n--                    oper_name_,\n--                    punish_oper_type_,\n--                    remark_\n--    FROM warehouse :: log_27899\n--    WHERE ds >= '${YYYYMMDD-365}00'\n--      AND ds <= '${YYYYMMDD}24'\n--      AND punish_oper_type_ = 0\n--      AND reason_number_ IN (13356886)\n\n     ",
+    "ground_truth": "'search_click_behavior_df'"
+  },
+  {
+    "id": 8,
+    "prefix": "select ds,\n       product_id,\n       product_name,\n       sku_id,\n       sku_img,\n       cmp_product_id,\n       cmp_product_name,\n       cmp_sku_id,\n       cmp_sku_img,\n       cmp_sku_price,\n       second_cate_name,\n       last_cate_name,\n       req_id,\n       content,\n       rt_time,\n       result,\n       cmp_plat_type,\n       first_cate_name\nfrom db_15::sku_feature_hour\nwhere ds >= 8479902459\nand product_id = 41414442605456\nand sku_id = ",
+    "suffix": "\nlimit 1000;",
+    "ground_truth": "3342331444\nand cmp_product_id = 69380459013225\nand cmp_sku_id = "
+  },
+  {
+    "id": 9,
+    "prefix": "select dt, game_id_jf, media_type",
+    "suffix": ", 'creative_id' from db_01.table_001 where dt=20250906 and game-id_jf='uamobile_live' and creative_id=134126396;",
+    "ground_truth": ", media_id, device_id_md5, game_id_o2, o2_game_id, model, account_id, campaign_id, adgroup_id"
+  },
+  {
+    "id": 10,
+    "prefix": "select \n    version_name,\n    count(distinct uin) as ucnt\nfrom db_13::login_metric_di\nwhere imp_date = 20250910\n    and platform_name = 'pc'\n    and platform = 'windows'\n    and product_name = '产品D'\ngroup by 1;\n\nselect \n    count(distinct uin) as uv\n    ,count(distinct if(product_name = '产品D',uin,null)) as qq_uv\n    ,count(distinct if(product_name = '产品B',uin,null)) as sgrp_uv\n    ,count(distinct if(product_name = '产品C',uin,null)) as nt_uv\n    ,count(distinct if(product_name = '其他',uin,null)) as qt_uv\n    ,count(distinct if(product_name = '产品A',uin,null)) as tim_uv\n    ,count(distinct if(product_name = '产品E',uin,null)) as qd_uv\nfrom db_13::login_metric_di\nwhere imp_date = 20250910\n    and platform_name = 'pc'\n    and platform = 'windows';\n\nselect \n    *\nfrom db_13::login_metric_di\nwhere imp_date = 20250910\n    and platform_name = 'pc'\n    --and platform = 'windows'\n    and app_version_num = 1311;\n\nselect \n    version_name,\n    count(distinct uin) as ucnt\nfrom db_13::login_metric_di\nwhere imp_date = 20250910\n    and platform_name = 'pc'\n    and platform = 'windows'\n    and product_name = '产品D'\ngroup by 1;\n\nselect \n    app_version_num,\n    count(distinct uin) as ucnt\n\nselect  \n    uin,\n\nfrom db_13::login_metric_di\nwhere imp_date = 20250910\n    and platform_name = 'pc'\n    and platform = 'windows'\n    and product_name = '产品D'\ngroup by 1;\n--------------------------------------人群包与登录老版本的交集\n",
+    "suffix": "\n",
+    "ground_truth": "select\n    count(distinct v1.uin) as ucnt1,\n    count(distinct v2.uin) as ucnt2\nfrom device_login_sample v1\nleft join(\n    select \n        uin\n    fr"
+  }
+]
