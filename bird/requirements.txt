@@ -1,0 +1,58 @@
+# LangChain / LangGraph
+langchain>=0.3.0
+langchain-openai>=0.2.0
+openai>=1.52.0
+langgraph>=0.2.0
+langchain-core>=0.3.0
+transformers==4.46.3
+
+# Data processing
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.5.2
+faiss-cpu==1.8.0.post1
+
+# Database access
+sqlalchemy==2.0.36
+# SQLite is bundled with Python.
+
+# Configuration
+python-dotenv==1.0.1
+
+# JSON repair
+json-repair>=0.52.0
+
+# HTTP
+certifi==2024.12.14
+
+# Logging
+loguru==0.7.2
+
+# Timeouts
+func-timeout==4.3.5
+
+# Typing
+typing-extensions==4.12.2
+
+# SQL parsing
+sqlparse>=0.4.0
+sqlglot>=25.34.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+
+# Jupyter (optional)
+jupyter==1.1.1
+notebook==7.3.2
+ipykernel==6.29.5
+
+# Formatting
+black==24.10.0
+isort==5.13.2
+
+nltk
+ijson
+sql_metadata
+requests>=2.32.3
+tqdm>=4.66.0

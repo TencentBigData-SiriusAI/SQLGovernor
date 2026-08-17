@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment Variables
+.env
+
+# Logs
+logs/
+*.log
+nohup.out
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Data
+data/databases/*.db
+data/databases/*.sqlite
+*.parquet
+
+# Experiments
+experiments/*/results/
+experiments/*/*.jsonl
+experiments/*/*.json
+!experiments/*/config.json
+
+# Token Tracking
+token_tracking/
+model_calls_log_*/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+doc/
+AGENTS.md
+
+experiments/*
+# Ignore generated reports/artifacts under scripts
+scripts/**/*.txt
+scripts/**/*.json
+scripts/**/*.jsonl
+.langgraph_api/*
+
+db_contents_index/*
+test/*
+disambiguation/*
+analyse_bad_case/*
+schema_linking/*
